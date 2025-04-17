@@ -27,3 +27,9 @@ variable "scanning" {
   type        = any
   default     = {}
 }
+
+variable "default_lifecycle_policy" {
+  description = "Default Lifecycle policy for the repositories"
+  type        = any
+  default     = []
+}
