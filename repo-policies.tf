@@ -31,6 +31,6 @@ data "aws_iam_policy_document" "repo_policy" {
 
 resource "aws_ecr_repository_policy" "repo_policy" {
   for_each   = local.repos
-  repository = aws_ecr_repository.this.name
+  repository = aws_ecr_repository.this[each.key].name
   policy     = data.aws_iam_policy_document.repo_policy[each.key].json
 }

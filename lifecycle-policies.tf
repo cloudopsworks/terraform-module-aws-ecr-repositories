@@ -58,6 +58,6 @@ resource "aws_ecr_lifecycle_policy" "lifecycle_policy" {
   for_each = {
     for k, repo in local.repos : k => repo if length(try(repo.lifecycle_policy_rules, [])) > 0 || length(var.default_lifecycle_policy) > 0
   }
-  repository = aws_ecr_repository.this.name
+  repository = aws_ecr_repository.this[each.key].name
   policy     = try(data.aws_ecr_lifecycle_policy_document.lifecycle_policy[each.key].json, data.aws_ecr_lifecycle_policy_document.default_lifecycle_policy[0].json)
 }
