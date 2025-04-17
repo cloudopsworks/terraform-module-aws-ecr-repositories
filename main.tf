@@ -26,28 +26,6 @@ resource "aws_ecr_repository" "this" {
 }
 
 # Inline policies
-data "aws_iam_policy_document" "lifecycle_policy" {
-  for_each = var.lifecycle_policy
-  version  = "2012-10-17"
-  dynamic "statement" {
-    for_each = each.value.statements
-    content {
-      sid       = try(statement.value.sid, null)
-      effect    = statement.value.effect
-      actions   = statement.value.actions
-      resources = statement.value.resources
-      dynamic "condition" {
-        for_each = try(statement.value.conditions, [])
-        content {
-          test     = condition.value.test
-          values   = condition.value.values
-          variable = condition.value.variable
-        }
-      }
-    }
-  }
-}
-
 data "aws_iam_policy_document" "repo_policy" {
   for_each = try(local.repos.policy, [])
   version  = "2012-10-17"
@@ -78,7 +56,8 @@ resource "aws_ecr_repository_policy" "repo_policy" {
 
 
 resource "aws_ecr_lifecycle_policy" "lifecycle_policy" {
-  policy = data.aws_iam_policy_document.lifecycle_policy.json
+  count  = length(var.lifecycle_policy) > 0 ? 1 : 0
+  policy = jsondecode(var.lifecycle_policy)
 }
 
 resource "aws_ecr_registry_scanning_configuration" "config" {
