@@ -37,7 +37,7 @@ data "aws_ecr_lifecycle_policy_document" "lifecycle_policy" {
       for rule in try(each.value.lifecycle_policy_rules, []) : "${each.k}-${rule.rule_priority}" => rule
     }
     content {
-      rule_priority = rule.value.rule_priority
+      priority = rule.value.rule_priority
       description   = try(rule.value.description, null)
       selection {
         tag_status       = rule.value.tag_status
