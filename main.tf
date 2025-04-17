@@ -24,3 +24,73 @@ resource "aws_ecr_repository" "this" {
 
   tags = local.all_tags
 }
+
+# Inline policies
+data "aws_iam_policy_document" "lifecycle_policy" {
+  for_each = var.lifecycle_policy
+  version  = "2012-10-17"
+  dynamic "statement" {
+    for_each = each.value.statements
+    content {
+      sid       = try(statement.value.sid, null)
+      effect    = statement.value.effect
+      actions   = statement.value.actions
+      resources = statement.value.resources
+      dynamic "condition" {
+        for_each = try(statement.value.conditions, [])
+        content {
+          test     = condition.value.test
+          values   = condition.value.values
+          variable = condition.value.variable
+        }
+      }
+    }
+  }
+}
+
+data "aws_iam_policy_document" "repo_policy" {
+  for_each = try(local.repos.policy, [])
+  version  = "2012-10-17"
+  dynamic "statement" {
+    for_each = each.value.statements
+    content {
+      sid       = try(statement.value.sid, null)
+      effect    = statement.value.effect
+      actions   = statement.value.actions
+      resources = statement.value.resources
+      dynamic "condition" {
+        for_each = try(statement.value.conditions, [])
+        content {
+          test     = condition.value.test
+          values   = condition.value.values
+          variable = condition.value.variable
+        }
+      }
+    }
+  }
+}
+
+resource "aws_ecr_repository_policy" "repo_policy" {
+  for_each   = local.repos
+  repository = aws_ecr_repository.this.name
+  policy     = data.aws_iam_policy_document.repo_policy.json
+}
+
+
+resource "aws_ecr_lifecycle_policy" "lifecycle_policy" {
+  policy = data.aws_iam_policy_document.lifecycle_policy.json
+}
+
+resource "aws_ecr_registry_scanning_configuration" "config" {
+  scan_type = try(var.scanning.scan_type, "BASIC")
+  dynamic "rule" {
+    for_each = var.scanning.rules
+    content {
+      scan_frequency = try(rule.value.scan_frequency, "SCAN_ON_PUSH")
+      repository_filter {
+        filter      = try(rule.value.filter, "*")
+        filter_type = try(rule.value.filter_type, "WILDCARD")
+      }
+    }
+  }
+}

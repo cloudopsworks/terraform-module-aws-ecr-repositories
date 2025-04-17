@@ -15,3 +15,15 @@ variable "default_kms_key" {
   type        = string
   default     = ""
 }
+
+variable "lifecycle_policy" {
+  description = "Lifecycle policies for the repositories"
+  type        = any
+  default     = []
+}
+
+variable "scanning" {
+  description = "Scanning configuration for the repositories"
+  type        = any
+  default     = {}
+}
