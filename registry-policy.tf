@@ -5,7 +5,7 @@
 #
 
 data "aws_iam_policy_document" "registry_policy" {
-  count   = length(var.registry_policy, []) > 0 ? 1 : 0
+  count   = length(var.registry_policy) > 0 ? 1 : 0
   version = "2012-10-17"
   dynamic "statement" {
     for_each = var.registry_policy.statements
