@@ -5,10 +5,10 @@
 #
 
 data "aws_iam_policy_document" "registry_policy" {
-  for_each = var.registry_policy
-  version  = "2012-10-17"
+  count   = length(var.registry_policy, []) > 0 ? 1 : 0
+  version = "2012-10-17"
   dynamic "statement" {
-    for_each = each.value.statements
+    for_each = var.registry_policy.statements
     content {
       sid       = try(statement.value.sid, null)
       effect    = statement.value.effect
@@ -28,5 +28,5 @@ data "aws_iam_policy_document" "registry_policy" {
 
 resource "aws_ecr_registry_policy" "registry_policy" {
   count  = length(var.registry_policy) > 0 ? 1 : 0
-  policy = data.aws_iam_policy_document.registry_policy.json
+  policy = data.aws_iam_policy_document.registry_policy[0].json
 }

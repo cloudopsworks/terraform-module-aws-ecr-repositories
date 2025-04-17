@@ -6,10 +6,12 @@
 
 # Inline policies
 data "aws_iam_policy_document" "repo_policy" {
-  for_each = try(local.repos.policy, [])
-  version  = "2012-10-17"
+  for_each = {
+    for k, repo in local.repos : k => repo if length(try(repo.policy.statements, [])) > 0
+  }
+  version = "2012-10-17"
   dynamic "statement" {
-    for_each = each.value.statements
+    for_each = each.value.policy.statements
     content {
       sid       = try(statement.value.sid, null)
       effect    = statement.value.effect
@@ -30,5 +32,5 @@ data "aws_iam_policy_document" "repo_policy" {
 resource "aws_ecr_repository_policy" "repo_policy" {
   for_each   = local.repos
   repository = aws_ecr_repository.this.name
-  policy     = data.aws_iam_policy_document.repo_policy.json
+  policy     = data.aws_iam_policy_document.repo_policy[each.key].json
 }
