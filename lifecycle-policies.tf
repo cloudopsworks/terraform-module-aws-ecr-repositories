@@ -5,7 +5,7 @@
 #
 
 data "aws_ecr_lifecycle_policy_document" "default_lifecycle_policy" {
-  count = length(var.default_lifecycle_policy, []) > 0 ? 1 : 0
+  count = length(var.default_lifecycle_policy) > 0 ? 1 : 0
   dynamic "rule" {
     for_each = {
       for rule in try(var.default_lifecycle_policy.rules, []) : "default-${rule.rule_priority}" => rule
