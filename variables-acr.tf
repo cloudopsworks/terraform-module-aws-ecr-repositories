@@ -16,8 +16,8 @@ variable "default_kms_key" {
   default     = ""
 }
 
-variable "lifecycle_policy" {
-  description = "Lifecycle policies for the repositories"
+variable "registry_policy" {
+  description = "Registry access policy for the repositories"
   type        = any
   default     = []
 }
