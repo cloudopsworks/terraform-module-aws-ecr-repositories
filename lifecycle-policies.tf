@@ -14,12 +14,12 @@ data "aws_ecr_lifecycle_policy_document" "default_lifecycle_policy" {
       priority    = rule.value.rule_priority
       description = try(rule.value.description, null)
       selection {
-        tag_status       = rule.value.tag_status
-        tag_prefix_list  = try(rule.value.tag_prefix_list, null)
-        tag_pattern_list = try(rule.value.tag_pattern_list, null)
-        count_type       = rule.value.count_type
-        count_unit       = try(rule.value.count_unit, "COUNT_NONE")
-        count_number     = try(rule.value.count_number, 0)
+        tag_status       = rule.value.selection.tag_status
+        tag_prefix_list  = try(rule.value.selection.tag_prefix_list, null)
+        tag_pattern_list = try(rule.value.selection.tag_pattern_list, null)
+        count_type       = rule.value.selection.count_type
+        count_unit       = try(rule.value.selection.count_unit, "COUNT_NONE")
+        count_number     = try(rule.value.selection.count_number, 0)
       }
       action {
         type = rule.value.action.type
