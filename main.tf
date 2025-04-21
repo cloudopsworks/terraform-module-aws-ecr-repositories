@@ -24,3 +24,17 @@ resource "aws_ecr_repository" "this" {
 
   tags = local.all_tags
 }
+
+resource "aws_ecr_registry_scanning_configuration" "config" {
+  scan_type = try(var.scanning.scan_type, "BASIC")
+  dynamic "rule" {
+    for_each = var.scanning.rules
+    content {
+      scan_frequency = try(rule.value.scan_frequency, "SCAN_ON_PUSH")
+      repository_filter {
+        filter      = try(rule.value.filter, "*")
+        filter_type = try(rule.value.filter_type, "WILDCARD")
+      }
+    }
+  }
+}
