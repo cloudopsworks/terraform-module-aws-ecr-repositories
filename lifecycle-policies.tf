@@ -11,8 +11,8 @@ data "aws_ecr_lifecycle_policy_document" "default_lifecycle_policy" {
       for rule in try(var.default_lifecycle_policy.rules, []) : "default-${rule.rule_priority}" => rule
     }
     content {
-      priority = rule.value.rule_priority
-      description   = try(rule.value.description, null)
+      priority    = rule.value.rule_priority
+      description = try(rule.value.description, null)
       selection {
         tag_status       = rule.value.tag_status
         tag_prefix_list  = try(rule.value.tag_prefix_list, null)
@@ -34,11 +34,11 @@ data "aws_ecr_lifecycle_policy_document" "lifecycle_policy" {
   }
   dynamic "rule" {
     for_each = {
-      for rule in try(each.value.lifecycle_policy_rules, []) : "${each.k}-${rule.rule_priority}" => rule
+      for rule in try(each.value.lifecycle_policy_rules, []) : "${each.key}-${rule.rule_priority}" => rule
     }
     content {
-      priority = rule.value.rule_priority
-      description   = try(rule.value.description, null)
+      priority    = rule.value.rule_priority
+      description = try(rule.value.description, null)
       selection {
         tag_status       = rule.value.tag_status
         tag_prefix_list  = try(rule.value.tag_prefix_list, null)
