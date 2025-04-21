@@ -30,7 +30,9 @@ data "aws_iam_policy_document" "repo_policy" {
 }
 
 resource "aws_ecr_repository_policy" "repo_policy" {
-  for_each   = local.repos
+  for_each = {
+    for k, repo in local.repos : k => repo if length(try(repo.policy.statements, [])) > 0
+  }
   repository = aws_ecr_repository.this[each.key].name
   policy     = data.aws_iam_policy_document.repo_policy[each.key].json
 }
