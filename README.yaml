@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: Terraform AWS ECR Repositories Management Module
 #logo: logo/logo.jpg
 
 license: "APACHE2"
@@ -8,23 +8,136 @@ copyrights:
     url: "https://cloudops.works"
     year: "2024"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-aws-ecr-repositories
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
-
+  This module manages AWS ECR repositories, providing a streamlined approach to creating, 
+  configuring, and maintaining container image repositories on AWS. It supports features such as 
+  lifecycle policies, encryption, repository policies, image scanning, and registry-wide configurations.
+  Key features include:
+  - Multiple repository management
+  - Customizable lifecycle policies
+  - KMS encryption support
+  - Image scanning configuration
+  - Repository and registry IAM policies
+  - Tag immutability controls
 # Introduction to the project
-#introduction: |-
-#  This is an introduction.
+introduction: |-
+  The AWS ECR Repositories Management Module simplifies the process of creating and managing 
+  Amazon Elastic Container Registry (ECR) repositories through Infrastructure as Code. It provides 
+  a comprehensive solution for organizations needing to maintain multiple container image repositories 
+  with standardized configurations and security policies.
 
 # How to use this project
-#usage: |-
+usage: |-
+  The module accepts the following main variable structures:
+
+  repositories:
+    - name: string                 # Repository name
+      force_delete: bool           # Allow repository deletion with images
+      image_tag_mutability: string # MUTABLE or IMMUTABLE
+      encryption_type: string      # AES256 or KMS
+      kms_key: string             # KMS key ARN if encryption_type is KMS
+      scan_on_push: bool          # Enable scan on push
+      lifecycle_policy_rules:      # List of lifecycle policy rules
+        - rule_priority: number
+          description: string
+          selection:
+            tag_status: string
+            tag_prefix_list: list(string)
+            tag_pattern_list: list(string)
+            count_type: string
+            count_unit: string
+            count_number: number
+          action:
+            type: string
+      policy:                      # Repository IAM policy
+        statements:
+          - sid: string
+            effect: string
+            actions: list(string)
+            resources: list(string)
+            conditions:
+              - test: string
+                values: list(string)
+                variable: string
 
 # Example usage
-#examples: |-
+examples: |-
+  terragrunt.hcl example:
+  ```hcl
+  include "root" {
+    path = find_in_parent_folders()
+  }
+
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-ecr-repositories.git?ref=v1.2.8"
+  }
+
+  inputs = {
+    repositories = [
+      {
+        name = "app-repository"
+        image_tag_mutability = "IMMUTABLE"
+        scan_on_push = true
+        lifecycle_policy_rules = [
+          {
+            rule_priority = 1
+            description = "Keep last 30 days of images"
+            selection = {
+              tag_status = "untagged"
+              count_type = "sinceImagePushed"
+              count_unit = "days"
+              count_number = 30
+            }
+            action = {
+              type = "expire"
+            }
+          }
+        ]
+      }
+    ]
+
+    scanning = {
+      scan_type = "ENHANCED"
+      rules = [
+        {
+          scan_frequency = "SCAN_ON_PUSH"
+          filter = "*"
+          filter_type = "WILDCARD"
+        }
+      ]
+    }
+  }
+  ```
 
 # How to get started quickly
-#quickstart: |-
+quickstart: |-
+  1. Add the module to your Terragrunt configuration:
+     ```hcl
+     terraform {
+       source = "git::https://github.com/cloudopsworks/terraform-module-aws-ecr-repositories.git?ref=v1.2.8"
+     }
+     ```
+
+  2. Configure basic repository:
+     ```hcl
+     inputs = {
+       repositories = [
+         {
+           name = "my-first-repo"
+           scan_on_push = true
+         }
+       ]
+     }
+     ```
+
+  3. Apply the configuration:
+     ```bash
+     terragrunt init
+     terragrunt plan
+     terragrunt apply
+     ```
 
 include:
   - "docs/targets.md"
