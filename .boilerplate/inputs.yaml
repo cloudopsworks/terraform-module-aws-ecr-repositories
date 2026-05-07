@@ -1,18 +1,73 @@
 # Module configuration
-# Required variables
-{{- range .requiredVariables }}
-{{- if ne .Name "org"}}
-# Description {{ .Description }} , Type: {{ .Type }}
-{{ .Name }}: {{ .DefaultValuePlaceholder }}
-{{- end }}
 
-{{- end }}
-# Optional variables
-{{- range .optionalVariables }}
-{{- if ne .Name "is_hub" "spoke_def" "extra_args" }}
-# Description {{ .Description }} , Type: {{ .Type }}
-#{{ .Name }}: {{ .DefaultValue }}
-{{- end }}
+repositories: [] # (Optional) List of ECR repositories to create. Default: [].
+# repositories:
+#   - name: "app-repository" # (Required) ECR repository name.
+#     force_delete: false # (Optional) Delete the repository even when it contains images. Default: false.
+#     image_tag_mutability: "IMMUTABLE" # (Optional) Tag mutability. Valid values: MUTABLE, IMMUTABLE. Default: IMMUTABLE.
+#     encryption_type: "AES256" # (Optional) Repository encryption type. Valid values: AES256, KMS. Default: AES256 unless default_kms_key is set.
+#     kms_key: "" # (Optional) KMS key ARN used when encryption_type is KMS. Default: default_kms_key.
+#     scan_on_push: false # (Optional) Enable repository scan-on-push. Default: false.
+#     lifecycle_policy_rules: [] # (Optional) Repository-specific lifecycle policy rules. Default: [].
+#     # lifecycle_policy_rules:
+#     #   - rule_priority: 1 # (Required) Unique rule priority; lower numbers are evaluated first.
+#     #     description: "Keep last 30 untagged images" # (Optional) Human-readable rule description. Default: null.
+#     #     selection:
+#     #       tag_status: "untagged" # (Required) Image tag status. Valid values: tagged, untagged, any.
+#     #       tag_prefix_list: [] # (Optional) Tag prefixes for tagged images. Default: null.
+#     #       tag_pattern_list: [] # (Optional) Tag patterns for tagged images. Default: null.
+#     #       count_type: "sinceImagePushed" # (Required) Count type. Valid values: imageCountMoreThan, sinceImagePushed.
+#     #       count_unit: "days" # (Optional) Count unit for sinceImagePushed. Valid values: days. Default: COUNT_NONE.
+#     #       count_number: 30 # (Required) Number of images or days, depending on count_type.
+#     #     action:
+#     #       type: "expire" # (Required) Lifecycle action type. Valid value: expire.
+#     policy: # (Optional) Repository IAM policy document inputs. Default: no repository policy.
+#       statements: [] # (Optional) IAM policy statements for this repository. Default: [].
+#       # statements:
+#       #   - sid: "AllowPull" # (Optional) Statement identifier. Default: null.
+#       #     effect: "Allow" # (Required) Statement effect. Valid values: Allow, Deny.
+#       #     actions: ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"] # (Required) IAM actions granted or denied.
+#       #     resources: ["*"] # (Required) IAM resources for the statement.
+#       #     conditions: [] # (Optional) IAM condition blocks. Default: [].
+#       #     # conditions:
+#       #     #   - test: "StringEquals" # (Required) IAM condition operator.
+#       #     #     variable: "aws:PrincipalOrgID" # (Required) IAM condition context key.
+#       #     #     values: ["o-example"] # (Required) IAM condition values.
 
-{{- end }}
+default_kms_key: "" # (Optional) Default KMS key ARN for repository encryption. Default: "" uses AES256 unless a repository overrides encryption_type/kms_key.
 
+registry_policy: [] # (Optional) Registry-wide IAM policy document inputs. Default: [] disables registry policy creation.
+# registry_policy:
+#   statements:
+#     - sid: "AllowRegistryRead" # (Optional) Statement identifier. Default: null.
+#       effect: "Allow" # (Required) Statement effect. Valid values: Allow, Deny.
+#       actions: ["ecr:DescribeRepositories"] # (Required) IAM actions granted or denied.
+#       resources: ["*"] # (Required) IAM resources for the statement.
+#       conditions: [] # (Optional) IAM condition blocks. Default: [].
+#       # conditions:
+#       #   - test: "StringEquals" # (Required) IAM condition operator.
+#       #     variable: "aws:PrincipalOrgID" # (Required) IAM condition context key.
+#       #     values: ["o-example"] # (Required) IAM condition values.
+
+scanning: # (Optional) Registry scanning configuration. Default: BASIC with no rules.
+  scan_type: "BASIC" # (Optional) Registry scan type. Valid values: BASIC, ENHANCED. Default: BASIC.
+  rules: [] # (Optional) Registry scanning rules. Default: [].
+  # rules:
+  #   - scan_frequency: "SCAN_ON_PUSH" # (Optional) Scan frequency. Valid values: SCAN_ON_PUSH, CONTINUOUS_SCAN. Default: SCAN_ON_PUSH.
+  #     filter: "*" # (Optional) Repository filter pattern. Default: *.
+  #     filter_type: "WILDCARD" # (Optional) Repository filter type. Valid value: WILDCARD. Default: WILDCARD.
+
+default_lifecycle_policy: [] # (Optional) Default lifecycle policy applied to repositories without lifecycle_policy_rules. Default: [] disables default lifecycle policies.
+# default_lifecycle_policy:
+#   rules:
+#     - rule_priority: 1 # (Required) Unique rule priority; lower numbers are evaluated first.
+#       description: "Keep last 30 untagged images" # (Optional) Human-readable rule description. Default: null.
+#       selection:
+#         tag_status: "untagged" # (Required) Image tag status. Valid values: tagged, untagged, any.
+#         tag_prefix_list: [] # (Optional) Tag prefixes for tagged images. Default: null.
+#         tag_pattern_list: [] # (Optional) Tag patterns for tagged images. Default: null.
+#         count_type: "sinceImagePushed" # (Required) Count type. Valid values: imageCountMoreThan, sinceImagePushed.
+#         count_unit: "days" # (Optional) Count unit for sinceImagePushed. Valid values: days. Default: COUNT_NONE.
+#         count_number: 30 # (Required) Number of images or days, depending on count_type.
+#       action:
+#         type: "expire" # (Required) Lifecycle action type. Valid value: expire.

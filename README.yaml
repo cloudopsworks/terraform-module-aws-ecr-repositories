@@ -1,5 +1,12 @@
 name: Terraform AWS ECR Repositories Management Module
 #logo: logo/logo.jpg
+badges:
+  - name: Latest Release
+    image: https://img.shields.io/github/release/cloudopsworks/terraform-module-aws-ecr-repositories.svg?style=for-the-badge
+    url: https://github.com/cloudopsworks/terraform-module-aws-ecr-repositories/releases/latest
+  - name: Last Updated
+    image: https://img.shields.io/github/last-commit/cloudopsworks/terraform-module-aws-ecr-repositories.svg?style=for-the-badge
+    url: https://github.com/cloudopsworks/terraform-module-aws-ecr-repositories/commits
 
 license: "APACHE2"
 
@@ -11,8 +18,8 @@ copyrights:
 github_repo: cloudopsworks/terraform-module-aws-ecr-repositories
 
 description: |-
-  This module manages AWS ECR repositories, providing a streamlined approach to creating, 
-  configuring, and maintaining container image repositories on AWS. It supports features such as 
+  This module manages AWS ECR repositories, providing a streamlined approach to creating,
+  configuring, and maintaining container image repositories on AWS. It supports features such as
   lifecycle policies, encryption, repository policies, image scanning, and registry-wide configurations.
   Key features include:
   - Multiple repository management
@@ -21,123 +28,197 @@ description: |-
   - Image scanning configuration
   - Repository and registry IAM policies
   - Tag immutability controls
+
 # Introduction to the project
 introduction: |-
-  The AWS ECR Repositories Management Module simplifies the process of creating and managing 
-  Amazon Elastic Container Registry (ECR) repositories through Infrastructure as Code. It provides 
-  a comprehensive solution for organizations needing to maintain multiple container image repositories 
+  The AWS ECR Repositories Management Module simplifies the process of creating and managing
+  Amazon Elastic Container Registry (ECR) repositories through Infrastructure as Code. It provides
+  a comprehensive solution for organizations needing to maintain multiple container image repositories
   with standardized configurations and security policies.
 
 # How to use this project
 usage: |-
-  The module accepts the following main variable structures:
+  Bootstrap each deployment with Terragrunt scaffold from the target deployment directory. Scaffold copies
+  `.boilerplate/inputs.yaml`, `.boilerplate/terragrunt.hcl`, and `local-tags.json` into the current directory.
 
-  repositories:
-    - name: string                 # Repository name
-      force_delete: bool           # Allow repository deletion with images
-      image_tag_mutability: string # MUTABLE or IMMUTABLE
-      encryption_type: string      # AES256 or KMS
-      kms_key: string             # KMS key ARN if encryption_type is KMS
-      scan_on_push: bool          # Enable scan on push
-      lifecycle_policy_rules:      # List of lifecycle policy rules
-        - rule_priority: number
-          description: string
-          selection:
-            tag_status: string
-            tag_prefix_list: list(string)
-            tag_pattern_list: list(string)
-            count_type: string
-            count_unit: string
-            count_number: number
-          action:
-            type: string
-      policy:                      # Repository IAM policy
-        statements:
-          - sid: string
-            effect: string
-            actions: list(string)
-            resources: list(string)
-            conditions:
-              - test: string
-                values: list(string)
-                variable: string
+  ```sh
+  # 1. Create and enter the target deployment directory
+  mkdir -p dev/us-east-1/core/ecr-repositories
+  cd dev/us-east-1/core/ecr-repositories
 
-# Example usage
-examples: |-
-  terragrunt.hcl example:
+  # 2. Scaffold the module (do NOT use --working-dir)
+  terragrunt scaffold github.com/cloudopsworks/terraform-module-aws-ecr-repositories
+
+  # 3. Edit inputs.yaml with deployment-specific values
+  #    (all keys and comments are pre-populated from .boilerplate/inputs.yaml)
+  vi inputs.yaml
+
+  # 4. Apply
+  terragrunt apply
+  ```
+
+  Generated `inputs.yaml`:
+
+  ```yaml
+  # Module configuration
+
+  repositories: [] # (Optional) List of ECR repositories to create. Default: [].
+  # repositories:
+  #   - name: "app-repository" # (Required) ECR repository name.
+  #     force_delete: false # (Optional) Delete the repository even when it contains images. Default: false.
+  #     image_tag_mutability: "IMMUTABLE" # (Optional) Tag mutability. Valid values: MUTABLE, IMMUTABLE. Default: IMMUTABLE.
+  #     encryption_type: "AES256" # (Optional) Repository encryption type. Valid values: AES256, KMS. Default: AES256 unless default_kms_key is set.
+  #     kms_key: "" # (Optional) KMS key ARN used when encryption_type is KMS. Default: default_kms_key.
+  #     scan_on_push: false # (Optional) Enable repository scan-on-push. Default: false.
+  #     lifecycle_policy_rules: [] # (Optional) Repository-specific lifecycle policy rules. Default: [].
+  #     # lifecycle_policy_rules:
+  #     #   - rule_priority: 1 # (Required) Unique rule priority; lower numbers are evaluated first.
+  #     #     description: "Keep last 30 untagged images" # (Optional) Human-readable rule description. Default: null.
+  #     #     selection:
+  #     #       tag_status: "untagged" # (Required) Image tag status. Valid values: tagged, untagged, any.
+  #     #       tag_prefix_list: [] # (Optional) Tag prefixes for tagged images. Default: null.
+  #     #       tag_pattern_list: [] # (Optional) Tag patterns for tagged images. Default: null.
+  #     #       count_type: "sinceImagePushed" # (Required) Count type. Valid values: imageCountMoreThan, sinceImagePushed.
+  #     #       count_unit: "days" # (Optional) Count unit for sinceImagePushed. Valid values: days. Default: COUNT_NONE.
+  #     #       count_number: 30 # (Required) Number of images or days, depending on count_type.
+  #     #     action:
+  #     #       type: "expire" # (Required) Lifecycle action type. Valid value: expire.
+  #     policy: # (Optional) Repository IAM policy document inputs. Default: no repository policy.
+  #       statements: [] # (Optional) IAM policy statements for this repository. Default: [].
+  #       # statements:
+  #       #   - sid: "AllowPull" # (Optional) Statement identifier. Default: null.
+  #       #     effect: "Allow" # (Required) Statement effect. Valid values: Allow, Deny.
+  #       #     actions: ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"] # (Required) IAM actions granted or denied.
+  #       #     resources: ["*"] # (Required) IAM resources for the statement.
+  #       #     conditions: [] # (Optional) IAM condition blocks. Default: [].
+  #       #     # conditions:
+  #       #     #   - test: "StringEquals" # (Required) IAM condition operator.
+  #       #     #     variable: "aws:PrincipalOrgID" # (Required) IAM condition context key.
+  #       #     #     values: ["o-example"] # (Required) IAM condition values.
+
+  default_kms_key: "" # (Optional) Default KMS key ARN for repository encryption. Default: "" uses AES256 unless a repository overrides encryption_type/kms_key.
+
+  registry_policy: [] # (Optional) Registry-wide IAM policy document inputs. Default: [] disables registry policy creation.
+  # registry_policy:
+  #   statements:
+  #     - sid: "AllowRegistryRead" # (Optional) Statement identifier. Default: null.
+  #       effect: "Allow" # (Required) Statement effect. Valid values: Allow, Deny.
+  #       actions: ["ecr:DescribeRepositories"] # (Required) IAM actions granted or denied.
+  #       resources: ["*"] # (Required) IAM resources for the statement.
+  #       conditions: [] # (Optional) IAM condition blocks. Default: [].
+  #       # conditions:
+  #       #   - test: "StringEquals" # (Required) IAM condition operator.
+  #       #     variable: "aws:PrincipalOrgID" # (Required) IAM condition context key.
+  #       #     values: ["o-example"] # (Required) IAM condition values.
+
+  scanning: # (Optional) Registry scanning configuration. Default: BASIC with no rules.
+    scan_type: "BASIC" # (Optional) Registry scan type. Valid values: BASIC, ENHANCED. Default: BASIC.
+    rules: [] # (Optional) Registry scanning rules. Default: [].
+    # rules:
+    #   - scan_frequency: "SCAN_ON_PUSH" # (Optional) Scan frequency. Valid values: SCAN_ON_PUSH, CONTINUOUS_SCAN. Default: SCAN_ON_PUSH.
+    #     filter: "*" # (Optional) Repository filter pattern. Default: *.
+    #     filter_type: "WILDCARD" # (Optional) Repository filter type. Valid value: WILDCARD. Default: WILDCARD.
+
+  default_lifecycle_policy: [] # (Optional) Default lifecycle policy applied to repositories without lifecycle_policy_rules. Default: [] disables default lifecycle policies.
+  # default_lifecycle_policy:
+  #   rules:
+  #     - rule_priority: 1 # (Required) Unique rule priority; lower numbers are evaluated first.
+  #       description: "Keep last 30 untagged images" # (Optional) Human-readable rule description. Default: null.
+  #       selection:
+  #         tag_status: "untagged" # (Required) Image tag status. Valid values: tagged, untagged, any.
+  #         tag_prefix_list: [] # (Optional) Tag prefixes for tagged images. Default: null.
+  #         tag_pattern_list: [] # (Optional) Tag patterns for tagged images. Default: null.
+  #         count_type: "sinceImagePushed" # (Required) Count type. Valid values: imageCountMoreThan, sinceImagePushed.
+  #         count_unit: "days" # (Optional) Count unit for sinceImagePushed. Valid values: days. Default: COUNT_NONE.
+  #         count_number: 30 # (Required) Number of images or days, depending on count_type.
+  #       action:
+  #         type: "expire" # (Required) Lifecycle action type. Valid value: expire.
+  ```
+
+  Generated `terragrunt.hcl` (without optional EKS dependency wiring):
+
   ```hcl
+  locals {
+    local_vars  = yamldecode(file("./inputs.yaml"))
+    spoke_vars  = yamldecode(file(find_in_parent_folders("spoke-inputs.yaml")))
+    region_vars = yamldecode(file(find_in_parent_folders("region-inputs.yaml")))
+    env_vars    = yamldecode(file(find_in_parent_folders("env-inputs.yaml")))
+    global_vars = yamldecode(file(find_in_parent_folders("global-inputs.yaml")))
+
+    local_tags  = jsondecode(file("./local-tags.json"))
+    spoke_tags  = jsondecode(file(find_in_parent_folders("spoke-tags.json")))
+    region_tags = jsondecode(file(find_in_parent_folders("region-tags.json")))
+    env_tags    = jsondecode(file(find_in_parent_folders("env-tags.json")))
+    global_tags = jsondecode(file(find_in_parent_folders("global-tags.json")))
+
+    tags = merge(
+      local.global_tags,
+      local.env_tags,
+      local.region_tags,
+      local.spoke_tags,
+      local.local_tags
+    )
+  }
+
   include "root" {
-    path = find_in_parent_folders()
+    path = find_in_parent_folders("root.hcl")
   }
 
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-ecr-repositories.git?ref=v1.2.8"
+    source = "github.com/cloudopsworks/terraform-module-aws-ecr-repositories"
   }
 
   inputs = {
-    repositories = [
-      {
-        name = "app-repository"
-        image_tag_mutability = "IMMUTABLE"
-        scan_on_push = true
-        lifecycle_policy_rules = [
-          {
-            rule_priority = 1
-            description = "Keep last 30 days of images"
-            selection = {
-              tag_status = "untagged"
-              count_type = "sinceImagePushed"
-              count_unit = "days"
-              count_number = 30
-            }
-            action = {
-              type = "expire"
-            }
-          }
-        ]
-      }
-    ]
-
-    scanning = {
-      scan_type = "ENHANCED"
-      rules = [
-        {
-          scan_frequency = "SCAN_ON_PUSH"
-          filter = "*"
-          filter_type = "WILDCARD"
-        }
-      ]
-    }
+    is_hub                   = false
+    org                      = local.env_vars.org
+    spoke_def                = local.spoke_vars.spoke
+    repositories             = try(local.local_vars.repositories, [])
+    default_kms_key          = try(local.local_vars.default_kms_key, "")
+    registry_policy          = try(local.local_vars.registry_policy, [])
+    scanning                 = try(local.local_vars.scanning, {})
+    default_lifecycle_policy = try(local.local_vars.default_lifecycle_policy, [])
+    extra_tags               = local.tags
   }
+  ```
+
+# Example usage
+examples: |-
+  Example `inputs.yaml` for an immutable application repository with scan-on-push and a retention policy:
+
+  ```yaml
+  repositories:
+    - name: "app-repository"
+      force_delete: false
+      image_tag_mutability: "IMMUTABLE"
+      encryption_type: "AES256"
+      scan_on_push: true
+      lifecycle_policy_rules:
+        - rule_priority: 1
+          description: "Expire untagged images older than 30 days"
+          selection:
+            tag_status: "untagged"
+            count_type: "sinceImagePushed"
+            count_unit: "days"
+            count_number: 30
+          action:
+            type: "expire"
+      policy:
+        statements: []
+
+  default_kms_key: ""
+  registry_policy: []
+  scanning:
+    scan_type: "BASIC"
+    rules: []
+  default_lifecycle_policy: []
   ```
 
 # How to get started quickly
 quickstart: |-
-  1. Add the module to your Terragrunt configuration:
-     ```hcl
-     terraform {
-       source = "git::https://github.com/cloudopsworks/terraform-module-aws-ecr-repositories.git?ref=v1.2.8"
-     }
-     ```
-
-  2. Configure basic repository:
-     ```hcl
-     inputs = {
-       repositories = [
-         {
-           name = "my-first-repo"
-           scan_on_push = true
-         }
-       ]
-     }
-     ```
-
-  3. Apply the configuration:
-     ```bash
-     terragrunt init
-     terragrunt plan
-     terragrunt apply
-     ```
+  1. Create and enter the target Terragrunt deployment directory.
+  2. Run `terragrunt scaffold github.com/cloudopsworks/terraform-module-aws-ecr-repositories`.
+  3. Edit `inputs.yaml` and define the ECR repositories, lifecycle rules, scanning settings, and optional policies.
+  4. Run `terragrunt plan`, review the changes, then run `terragrunt apply`.
 
 include:
   - "docs/targets.md"
