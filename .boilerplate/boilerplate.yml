@@ -14,22 +14,26 @@ variables:
     description: "Is this a hub configuration?"
     type: bool
     default: false
+    confirm: true
   - name: tags
     order: 1
     description: "Tags"
     type: map
     default: {}
+    confirm: true
   # End - Generic Boilerplate Variables Setup
   - name: eks_dependency_enabled
     order: 2
     description: "Is EKS Dependency Enabled?"
     type: bool
     default: false
+    confirm: true
   - name: eks_dependency_path
     order: 3
     description: "EKS Dependency Path"
     type: string
     default: "../eks"
+    confirm: true
 
 hooks:
   after:
