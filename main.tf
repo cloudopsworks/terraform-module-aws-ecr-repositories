@@ -1,5 +1,5 @@
 ##
-# (c) 2021-2025
+# (c) 2021-2026
 #     Cloud Ops Works LLC - https://cloudops.works/
 #     Find us on:
 #       GitHub: https://github.com/cloudopsworks
@@ -31,7 +31,7 @@ resource "aws_ecr_repository" "this" {
 resource "aws_ecr_registry_scanning_configuration" "config" {
   scan_type = try(var.scanning.scan_type, "BASIC")
   dynamic "rule" {
-    for_each = var.scanning.rules
+    for_each = try(var.scanning.rules, [])
     content {
       scan_frequency = try(rule.value.scan_frequency, "SCAN_ON_PUSH")
       repository_filter {

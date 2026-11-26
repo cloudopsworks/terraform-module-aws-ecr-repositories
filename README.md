@@ -3,8 +3,7 @@
   ** 
   ** This file was automatically generated. 
   ** 1) Make all changes to `README.yaml` 
-  ** 2) Run `make init` (you only need to do this once)
-  ** 3) Run`make readme` to rebuild this file. 
+  ** 2) Run `tronador readme build` to rebuild this file.
   -->
 [![README Header][readme_header_img]][readme_header_link]
 
@@ -81,8 +80,32 @@ terragrunt scaffold github.com/cloudopsworks/terraform-module-aws-ecr-repositori
 #    (all keys and comments are pre-populated from .boilerplate/inputs.yaml)
 vi inputs.yaml
 
-# 4. Apply
+# 4. Review and apply
+terragrunt plan
 terragrunt apply
+```
+
+### Lifecycle policies and AWS Security Hub ECR.3
+
+AWS Security Hub ECR.3 checks that each private ECR repository has a lifecycle policy.
+The module selects one set of rules per repository in this order. [AWS Security Hub ECR.3](https://docs.aws.amazon.com/securityhub/latest/userguide/ecr-controls.html#ecr-3)
+
+1. The repository's `lifecycle_policy_rules` when it contains rules.
+2. The shared `default_lifecycle_policy.rules` when it contains rules.
+3. The built-in rule that expires untagged images 30 days after push.
+
+Empty and omitted rule lists inherit the next policy in this order. When upgrading, use
+the ECR lifecycle policy preview before applying a new or changed policy to a repository with images.
+ECR can expire matching images within 24 hours. [ECR lifecycle policy preview](https://docs.aws.amazon.com/AmazonECR/latest/userguide/lpp_creation.html)
+
+If a repository already has a lifecycle policy managed outside this module, copy its rules
+into `lifecycle_policy_rules` and transfer ownership before applying. ECR supports a single lifecycle
+policy per repository. Import that policy by repository name using the Terragrunt deployment directory.
+Replace `app-repository` with the repository's name. [Provider import documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_lifecycle_policy#import)
+
+```sh
+terragrunt import 'aws_ecr_lifecycle_policy.lifecycle_policy["app-repository"]' app-repository
+terragrunt plan
 ```
 
 Generated `inputs.yaml`:
@@ -98,16 +121,16 @@ repositories: [] # (Optional) List of ECR repositories to create. Default: [].
 #     encryption_type: "AES256" # (Optional) Repository encryption type. Valid values: AES256, KMS. Default: AES256 unless default_kms_key is set.
 #     kms_key: "" # (Optional) KMS key ARN used when encryption_type is KMS. Default: default_kms_key.
 #     scan_on_push: false # (Optional) Enable repository scan-on-push. Default: false.
-#     lifecycle_policy_rules: [] # (Optional) Repository-specific lifecycle policy rules. Default: [].
+#     lifecycle_policy_rules: [] # (Optional) Repository-specific lifecycle policy rules. Default: [] inherits the shared or built-in policy.
 #     # lifecycle_policy_rules:
 #     #   - rule_priority: 1 # (Required) Unique rule priority; lower numbers are evaluated first.
-#     #     description: "Keep last 30 untagged images" # (Optional) Human-readable rule description. Default: null.
+#     #     description: "Expire untagged images 30 days after push" # (Optional) Human-readable rule description. Default: null.
 #     #     selection:
 #     #       tag_status: "untagged" # (Required) Image tag status. Valid values: tagged, untagged, any.
 #     #       tag_prefix_list: [] # (Optional) Tag prefixes for tagged images. Default: null.
 #     #       tag_pattern_list: [] # (Optional) Tag patterns for tagged images. Default: null.
 #     #       count_type: "sinceImagePushed" # (Required) Count type. Valid values: imageCountMoreThan, sinceImagePushed.
-#     #       count_unit: "days" # (Optional) Count unit for sinceImagePushed. Valid values: days. Default: COUNT_NONE.
+#     #       count_unit: "days" # (Optional) Count unit for sinceImagePushed. Default: days. Omitted for imageCountMoreThan.
 #     #       count_number: 30 # (Required) Number of images or days, depending on count_type.
 #     #     action:
 #     #       type: "expire" # (Required) Lifecycle action type. Valid value: expire.
@@ -147,17 +170,17 @@ scanning: # (Optional) Registry scanning configuration. Default: BASIC with no r
   #     filter: "*" # (Optional) Repository filter pattern. Default: *.
   #     filter_type: "WILDCARD" # (Optional) Repository filter type. Valid value: WILDCARD. Default: WILDCARD.
 
-default_lifecycle_policy: [] # (Optional) Default lifecycle policy applied to repositories without lifecycle_policy_rules. Default: [] disables default lifecycle policies.
+default_lifecycle_policy: [] # (Optional) Shared lifecycle policy for repositories without custom rules. Default: [] uses the built-in policy that expires untagged images 30 days after push.
 # default_lifecycle_policy:
 #   rules:
 #     - rule_priority: 1 # (Required) Unique rule priority; lower numbers are evaluated first.
-#       description: "Keep last 30 untagged images" # (Optional) Human-readable rule description. Default: null.
+#       description: "Expire untagged images 30 days after push" # (Optional) Human-readable rule description. Default: null.
 #       selection:
 #         tag_status: "untagged" # (Required) Image tag status. Valid values: tagged, untagged, any.
 #         tag_prefix_list: [] # (Optional) Tag prefixes for tagged images. Default: null.
 #         tag_pattern_list: [] # (Optional) Tag patterns for tagged images. Default: null.
 #         count_type: "sinceImagePushed" # (Required) Count type. Valid values: imageCountMoreThan, sinceImagePushed.
-#         count_unit: "days" # (Optional) Count unit for sinceImagePushed. Valid values: days. Default: COUNT_NONE.
+#         count_unit: "days" # (Optional) Count unit for sinceImagePushed. Default: days. Omitted for imageCountMoreThan.
 #         count_number: 30 # (Required) Number of images or days, depending on count_type.
 #       action:
 #         type: "expire" # (Required) Lifecycle action type. Valid value: expire.
@@ -213,13 +236,13 @@ inputs = {
 
 1. Create and enter the target Terragrunt deployment directory.
 2. Run `terragrunt scaffold github.com/cloudopsworks/terraform-module-aws-ecr-repositories`.
-3. Edit `inputs.yaml` and define the ECR repositories, lifecycle rules, scanning settings, and optional policies.
+3. Define the ECR repositories in `inputs.yaml` and override lifecycle or scanning settings as needed.
 4. Run `terragrunt plan`, review the changes, then run `terragrunt apply`.
 
 
 ## Examples
 
-Example `inputs.yaml` for an immutable application repository with scan-on-push and a retention policy:
+This example `inputs.yaml` creates an immutable application repository with scan-on-push and a custom 60-day retention policy for untagged images.
 
 ```yaml
 repositories:
@@ -230,12 +253,12 @@ repositories:
     scan_on_push: true
     lifecycle_policy_rules:
       - rule_priority: 1
-        description: "Expire untagged images older than 30 days"
+        description: "Expire untagged images 60 days after push"
         selection:
           tag_status: "untagged"
           count_type: "sinceImagePushed"
           count_unit: "days"
-          count_number: 30
+          count_number: 60
         action:
           type: "expire"
     policy:
@@ -266,32 +289,31 @@ Available targets:
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.4 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.35 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
+| ---- | ------- |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
 
 ## Modules
 
 | Name | Source | Version |
-|------|--------|---------|
-| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.9 |
+| ---- | ------ | ------- |
+| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [aws_ecr_lifecycle_policy.lifecycle_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_lifecycle_policy) | resource |
 | [aws_ecr_registry_policy.registry_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_registry_policy) | resource |
 | [aws_ecr_registry_scanning_configuration.config](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_registry_scanning_configuration) | resource |
 | [aws_ecr_repository.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository) | resource |
 | [aws_ecr_repository_policy.repo_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository_policy) | resource |
-| [aws_ecr_lifecycle_policy_document.default_lifecycle_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ecr_lifecycle_policy_document) | data source |
 | [aws_ecr_lifecycle_policy_document.lifecycle_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ecr_lifecycle_policy_document) | data source |
 | [aws_iam_policy_document.registry_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.repo_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -300,21 +322,21 @@ Available targets:
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_default_kms_key"></a> [default\_kms\_key](#input\_default\_kms\_key) | Default KMS key to use for encryption | `string` | `""` | no |
-| <a name="input_default_lifecycle_policy"></a> [default\_lifecycle\_policy](#input\_default\_lifecycle\_policy) | Default Lifecycle policy for the repositories | `any` | `[]` | no |
-| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | n/a | `map(string)` | `{}` | no |
-| <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Establish this is a HUB or spoke configuration | `bool` | `false` | no |
-| <a name="input_org"></a> [org](#input\_org) | n/a | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
+| <a name="input_default_lifecycle_policy"></a> [default\_lifecycle\_policy](#input\_default\_lifecycle\_policy) | Optional shared lifecycle rules. Repositories without custom or shared rules expire untagged images 30 days after push. | `any` | `[]` | no |
+| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra tags to add to the resources | `map(string)` | `{}` | no |
+| <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Is this a hub or spoke configuration? | `bool` | `false` | no |
+| <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
 | <a name="input_registry_policy"></a> [registry\_policy](#input\_registry\_policy) | Registry access policy for the repositories | `any` | `[]` | no |
 | <a name="input_repositories"></a> [repositories](#input\_repositories) | List of repositories to setup | `any` | `[]` | no |
 | <a name="input_scanning"></a> [scanning](#input\_scanning) | Scanning configuration for the repositories | `any` | `{}` | no |
-| <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | n/a | `string` | `"001"` | no |
+| <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_repositories"></a> [repositories](#output\_repositories) | Information of the created repositories |
 
 
